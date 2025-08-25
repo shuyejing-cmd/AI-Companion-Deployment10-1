@@ -1,0 +1,9 @@
+# 将所有文件都默认为 LF，这是现代跨平台项目的最佳实践
+* text=auto eol=lf
+
+# 明确指定 shell 脚本文件必须是 LF
+*.sh text eol=lf
+
+# (可选) 对于 Windows 特有的批处理文件，可以指定为 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf

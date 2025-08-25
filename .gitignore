@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# IDE / Editor specific
+.vscode/
+.idea/
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Sensitive Files
+.env  # <-- 极其重要！绝不能上传包含密码和 API Key 的 .env 文件！
+
+# Docker
+docker-compose.override.yml
+
+# Uploads
+uploads/  # <-- 绝不能上传用户上传的文件
+
+# Log files
+*.log

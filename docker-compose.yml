@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: ai_companion_backend
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    
+    # --- 正确：environment 和 build, volumes, depends_on 在同一个缩进层级 ---
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    # command: bash -c "alembic upgrade head && hypercorn app.main:app --bind 0.0.0.0:8000"
+
+    
+
+  # 2. 定义 PostgreSQL 数据库服务
+  db:
+    image: postgres:15-alpine # 使用官方的 PostgreSQL 镜像
+    container_name: ai_companion_db_container
+    volumes:
+      - .:/app # 将数据库数据持久化到 Docker volume
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER} # 从 .env 文件读取
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD} # 从 .env 文件读取
+      - POSTGRES_DB=${POSTGRES_DB} # 从 .env 文件读取
+    ports:
+      - "5432:5432" # 映射端口，方便我们用 DBeaver 从外部连接
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 3. 定义 Redis 缓存服务
+  redis:
+    image: redis:6-alpine # 使用官方的 Redis 镜像
+    container_name: ai_companion_redis_container
+    ports:
+      - "6379:6379" # 映射端口
