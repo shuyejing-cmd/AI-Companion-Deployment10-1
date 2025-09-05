@@ -1,3 +1,4 @@
+from uuid import UUID
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.schemas.user import UserCreate
@@ -18,3 +19,9 @@ def create_user(db: Session, user_in: UserCreate) -> User:
     db.commit()
     db.refresh(db_user) # 刷新实例，以获取数据库自动生成的值 (如 id, created_at)
     return db_user
+
+def get_user(db: Session, user_id: UUID) -> User | None:
+    """
+    通过 user_id 查询用户
+    """
+    return db.query(User).filter(User.id == user_id).first()

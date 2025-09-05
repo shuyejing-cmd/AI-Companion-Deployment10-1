@@ -1,3 +1,5 @@
+# app/services/chat_service.py (RAG 整合版)
+
 from uuid import UUID
 import asyncio
 from sqlalchemy.orm import Session
@@ -14,6 +16,9 @@ from app.crud import crud_message
 from app.schemas.message import MessageCreate
 import redis.asyncio as redis
 
+# --- 关键改动 1: 导入我们刚刚创建的 RAGService ---
+from app.services.rag_service import rag_service
+
 class ChatService:
     def __init__(self, db: Session, redis_client: redis.Redis, companion: Companion, user_id: UUID):
         self.db = db
@@ -29,6 +34,14 @@ class ChatService:
 
     async def process_user_message(self, user_message: str) -> AsyncGenerator[str, None]:
         """处理用户消息，并以流的形式返回 AI 回复。"""
+        
+        # --- 关键改动 2: 在调用 LLM 之前，先进行 RAG 检索 ---
+        retrieved_knowledge = rag_service.retrieve(
+            query=user_message,
+            companion_id=self.companion.id
+        )
+        knowledge_context = "\n\n".join(retrieved_knowledge)
+        
         # 1. 延迟导入和初始化 LangChain 相关组件
         from langchain_openai import ChatOpenAI
         
@@ -40,17 +53,35 @@ class ChatService:
             streaming=True,
         )
 
+        # --- 关键改动 3: 动态构建包含知识的“增强 Prompt” ---
+        base_prompt_template = f"""
+        {self.companion.instructions}
+        Here is an example of how you should talk:
+        {self.companion.seed}
+        """
+
+        if knowledge_context:
+            # 如果检索到了相关知识，就构建一个增强的 Prompt
+            augmented_prompt_template = f"""
+            Answer the user's question based ONLY on the following background knowledge. If the answer is not in the knowledge, say you don't know.
+            ---BACKGROUND KNOWLEDGE---
+            {knowledge_context}
+            ---END BACKGROUND KNOWLEDGE---
+
+            Your core instructions are:
+            {base_prompt_template}
+            """
+            system_prompt = SystemMessagePromptTemplate.from_template(augmented_prompt_template)
+        else:
+            # 如果没有检索到知识，就使用原来的基础 Prompt
+            system_prompt = SystemMessagePromptTemplate.from_template(base_prompt_template)
+        
         prompt = ChatPromptTemplate.from_messages([
-            SystemMessagePromptTemplate.from_template(
-                f"""
-                {self.companion.instructions}
-                Here is an example of how you should talk:
-                {self.companion.seed}
-                """
-            ),
+            system_prompt,
             MessagesPlaceholder(variable_name="chat_history"),
             HumanMessagePromptTemplate.from_template("{input}"),
         ])
+        # --- 增强 Prompt 构建结束 ---
 
         # 异步获取记忆
         memory = await self.memory_manager.get_memory()

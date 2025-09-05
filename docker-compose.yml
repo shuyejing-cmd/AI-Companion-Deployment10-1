@@ -1,53 +1,54 @@
-version: '3.8'
+# docker-compose.yml (适用于开发环境的正确版本)
 
 services:
-  backend:
+  app:
+    # build: 指示 Docker 从当前目录的 Dockerfile 构建镜像
     build: .
-    container_name: ai_companion_backend
-    env_file:
-      - .env
+    # image: 为构建出的镜像起一个名字
+    image: ai-companion-backend-image:latest
+    container_name: ai_companion_app
     ports:
       - "8000:8000"
+    # volumes: 启用代码实时同步和热重载，这是开发阶段的必需品！
     volumes:
       - .:/app
+    env_file:
+      - .env
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    
-    # --- 正确：environment 和 build, volumes, depends_on 在同一个缩进层级 ---
-    environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    # command: bash -c "alembic upgrade head && hypercorn app.main:app --bind 0.0.0.0:8000"
+      - db
+      - redis
 
-    
-
-  # 2. 定义 PostgreSQL 数据库服务
   db:
-    image: postgres:15-alpine # 使用官方的 PostgreSQL 镜像
-    container_name: ai_companion_db_container
+    image: postgres:15
+    container_name: ai_companion_db
+    env_file:
+      - .env
     volumes:
-      - .:/app # 将数据库数据持久化到 Docker volume
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER} # 从 .env 文件读取
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD} # 从 .env 文件读取
-      - POSTGRES_DB=${POSTGRES_DB} # 从 .env 文件读取
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432" # 映射端口，方便我们用 DBeaver 从外部连接
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - "5432:5432"
 
-  # 3. 定义 Redis 缓存服务
   redis:
-    image: redis:6-alpine # 使用官方的 Redis 镜像
-    container_name: ai_companion_redis_container
+    image: redis:7-alpine
+    container_name: ai_companion_redis
     ports:
-      - "6379:6379" # 映射端口
+      - "6379:6379"
+
+  worker:
+    # build: worker 服务也必须从同一个 Dockerfile 构建，以保证环境一致
+    build: .
+    image: ai-companion-backend-image:latest
+    container_name: ai_companion_worker
+    # command: 覆盖 Dockerfile 中的默认 CMD，运行 worker 进程
+    command: python -m arq app.core.arq_worker.WorkerSettings
+    # volumes: worker 服务同样需要代码同步
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+
+volumes:
+  postgres_data:

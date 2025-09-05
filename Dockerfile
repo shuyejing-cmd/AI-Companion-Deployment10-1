@@ -1,46 +1,43 @@
+# Dockerfile
+# --------------------------------------------------
+
+# 使用官方的 Python 3.10 slim 镜像作为基础
 FROM python:3.10-slim
 
-# --- 核心修改：在执行 apt-get 之前，先替换软件源为国内镜像 ---
-# 备份原始源列表
-RUN mv /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list.d/debian.sources.bak
-# 创建新的源列表文件，并写入阿里云的 Debian 镜像源地址
-# 注意：我们基础镜像是 Debian Trixie (testing/unstable)，所以用 trixie
-RUN echo "deb https://mirrors.aliyun.com/debian/ trixie main non-free contrib" > /etc/apt/sources.list && \
-    echo "deb https://mirrors.aliyun.com/debian-security trixie-security main" >> /etc/apt/sources.list && \
-    echo "deb https://mirrors.aliyun.com/debian/ trixie-updates main non-free contrib" >> /etc/apt/sources.list
-# --------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
+# --- 1. 设置关键环境变量 ---
+#    确保 Python 的输出日志不会被缓冲，可以实时看到
+ENV PYTHONUNBUFFERED=1
+#    定义虚拟环境的路径，方便后续引用
+ENV VIRTUAL_ENV=/.venv
+#    创建虚拟环境
+RUN python -m venv $VIRTUAL_ENV
 
-# 2. 工作目录
+# --- 2. 【【【 这是解决问题的核心 】】】 ---
+#    将虚拟环境的 bin 目录添加到系统 PATH 环境变量的最前面。
+#    这样，后续所有命令（如 python, pip, alembic）都会自动使用虚拟环境中的版本。
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# --- 3. 设置工作目录 ---
 WORKDIR /app
 
-# 3. 环境变量
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# --- 4. 复制并安装依赖 ---
+#    因为第 2 步的 PATH 设置，这里的 pip 命令会自动指向 /.venv/bin/pip
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 4. 安装系统依赖，包括 postgresql-client
-# 现在这个命令会从阿里云的镜像源下载，速度会非常快
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+# --- 5. 复制所有项目代码 ---
+COPY . .
 
-# 4. 安装 uv
-RUN pip install uv
-
-# 5. 复制依赖文件
-COPY requirements.in requirements.txt /app/
-
-# 6. 安装 Python 依赖
-RUN uv pip sync --system requirements.txt
-
-# 7. 复制应用代码和脚本
-COPY ./app /app/app
-COPY ./alembic /app/alembic
-COPY alembic.ini /app/alembic.ini
-COPY ./entrypoint.sh /app/entrypoint.sh
+# --- 6. 确保入口脚本有执行权限 ---
+#    这是一个好习惯，可以避免权限问题
 RUN chmod +x /app/entrypoint.sh
 
-# 8. 暴露端口
-EXPOSE 8000
-
-# 9. 定义容器的入口点
+# --- 7. 设置入口点脚本 ---
 ENTRYPOINT ["/app/entrypoint.sh"]
+
+# --- 8. 为 app 服务设置默认的启动命令 ---
+#    worker 服务的命令会在 docker-compose.yml 中被覆盖
+CMD ["python", "-m", "hypercorn", "app.main:app", "--bind", "0.0.0.0:8000"]
+
+# --------------------------------------------------

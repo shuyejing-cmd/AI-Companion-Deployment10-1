@@ -1,30 +1,23 @@
-# Python
+# 字节码和缓存文件
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 
-# Virtual Environment
+# 虚拟环境
 .venv/
-venv/
-env/
 
-# IDE / Editor specific
+# 语言模型缓存
+models_cache/
+
+# 用户上传的文件
+uploads/
+
+# 包含密钥和密码的环境变量文件
+.env
+
+# VSCode 编辑器配置
 .vscode/
+
+# IDE/编辑器生成的其他文件
 .idea/
-
-# Operating System
-.DS_Store
-Thumbs.db
-
-# Sensitive Files
-.env  # <-- 极其重要！绝不能上传包含密码和 API Key 的 .env 文件！
-
-# Docker
-docker-compose.override.yml
-
-# Uploads
-uploads/  # <-- 绝不能上传用户上传的文件
-
-# Log files
-*.log
+*.swp

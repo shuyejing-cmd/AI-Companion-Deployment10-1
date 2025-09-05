@@ -1,21 +1,30 @@
 #!/bin/sh
-# 使用 /bin/sh 确保更好的兼容性
-
 set -e
 
-echo "Waiting for PostgreSQL to be ready..."
+# --- 增加健壮性：为环境变量提供默认值 ---
+# 如果 POSTGRES_HOST 变量不存在或为空，就使用 'db' 作为默认值
+DB_HOST=${POSTGRES_HOST:-db}
+DB_PORT=${POSTGRES_PORT:-5432}
+DB_USER=${POSTGRES_USER:-postgres}
+# ------------------------------------------
 
-# 使用 pg_isready 循环等待数据库准备就绪
-until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER"; do
+# --- 增加调试信息，方便排查 ---
+echo "--- Starting Entrypoint Script ---"
+echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
+# ------------------------------------
+
+# 等待 PostgreSQL 服务启动
+until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
   echo "PostgreSQL is unavailable - sleeping"
   sleep 3
 done
 
 echo "PostgreSQL is up - executing migrations"
 
-# 自动生成迁移（如果需要）并应用
-alembic upgrade head
+# 运行 Alembic 迁移
+python -m alembic upgrade head
 
-echo "Migrations check complete - starting application"
+echo "Migrations complete - starting application"
 
-exec hypercorn app.main:app --bind 0.0.0.0:8000
+
+exec "$@"

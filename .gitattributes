@@ -7,3 +7,10 @@
 # (可选) 对于 Windows 特有的批处理文件，可以指定为 CRLF
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# .gitattributes
+
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.py text eol=lf
