@@ -1,54 +1,52 @@
-# .github/workflows/ci.yml
+# .github/workflows/ci.yml (修正版)
 
-name: AI Companion CI # 工作流的名字
+name: AI Companion CI
 
-# 触发工作流的条件
 on:
   push:
-    branches: [ "main", "master" ] # 当代码被推送到 main 或 master 分支时触发
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main", "master" ] # 当有Pull Request提交到 main 或 master 分支时触发
+    branches: [ "main", "master" ]
 
 jobs:
-  test: # 我们定义一个名为 "test" 的任务
-    runs-on: ubuntu-latest # 这个任务将运行在GitHub提供的最新版Ubuntu服务器上
+  test:
+    runs-on: ubuntu-latest
 
-    # 为我们的任务启动依赖服务
-    # 这里我们启动一个Redis，这样我们的集成测试就能连接到它
     services:
       redis:
-        image: redis:7-alpine # 使用与 docker-compose.yml 中相同的Redis镜像
+        image: redis:7-alpine
         ports:
-          - 6379:6379 # 将容器的6379端口映射到宿主机，这样测试代码可以通过 localhost:6379 访问
+          - 6379:6379
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
-    steps: # 任务的具体执行步骤
-      # 第1步：检出代码
-      # 这个操作会把你的代码仓库克隆到运行服务器上
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 第2步：设置Python环境
-      # 我们使用官方的 setup-python action 来安装指定版本的Python
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip' # 启用依赖缓存，加快后续构建速度
+          cache: 'pip'
 
-      # 第3步：安装项目依赖
       - name: Install dependencies
         run: |
+          # --- 关键改动：在这里创建并激活虚拟环境 ---
+          python -m venv .venv
+          source .venv/bin/activate
+          # --- 改动结束 ---
+
           pip install uv
           uv pip sync requirements.txt requirements-dev.txt
 
-      # 第4步：运行自动化测试
-      # 这是最关键的一步！
       - name: Run tests with pytest
         run: |
+          # --- 关键改动：运行测试前也要先激活虚拟环境 ---
+          source .venv/bin/activate
+          # --- 改动结束 ---
+
           pytest
-# A comment to force update          
