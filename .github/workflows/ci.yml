@@ -1,4 +1,4 @@
-# .github/workflows/ci.yml (修正版)
+# .github/workflows/ci.yml (最终版)
 
 name: AI Companion CI
 
@@ -35,18 +35,23 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # --- 关键改动：在这里创建并激活虚拟环境 ---
           python -m venv .venv
           source .venv/bin/activate
-          # --- 改动结束 ---
-
           pip install uv
           uv pip sync requirements.txt requirements-dev.txt
 
       - name: Run tests with pytest
+        # --- 关键改动：在这里注入我们设置好的密钥 ---
+        env:
+          # 语法：环境变量名: ${{ secrets.你在GitHub上设置的密钥名 }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DEEPSEEK_API_BASE: ${{ secrets.DEEPSEEK_API_BASE }}
+          PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
+          # --- 我们仍然希望测试使用文件数据库和本地Redis ---
+          DATABASE_URL: "sqlite:///./test.db"
+          
         run: |
-          # --- 关键改动：运行测试前也要先激活虚拟环境 ---
           source .venv/bin/activate
-          # --- 改动结束 ---
-
           pytest
