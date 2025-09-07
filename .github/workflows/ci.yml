@@ -50,7 +50,7 @@ jobs:
           DEEPSEEK_API_BASE: ${{ secrets.DEEPSEEK_API_BASE }}
           PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
           # --- 我们仍然希望测试使用文件数据库和本地Redis ---
-          DATABASE_URL: "sqlite:///./test.db"
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
           
         run: |
           source .venv/bin/activate

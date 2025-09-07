@@ -12,7 +12,7 @@ from app.db.base import Base
 
 # --- 1. 定义一个全局的测试数据库引擎 ---
 # 我们仍然使用文件型数据库，因为它最稳定可靠
-TEST_DATABASE_URL = "sqlite:///./test.db"
+TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 engine = create_engine(
     TEST_DATABASE_URL, connect_args={"check_same_thread": False}
 )
