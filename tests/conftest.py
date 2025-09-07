@@ -1,68 +1,63 @@
-# tests/conftest.py (最终版)
+# tests/conftest.py (最终完美异步版)
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
+# 关键：导入 app, settings, Base, 和原始的 get_db 依赖
 from app.main import app
 from app.core.config import settings
-from app.apis.dependencies import get_db
 from app.db.base import Base
+from app.apis.dependencies import get_db
 
-# --- 1. 定义一个全局的测试数据库引擎 ---
-# 我们仍然使用文件型数据库，因为它最稳定可靠
+# --- 1. 创建一个异步的测试数据库引擎 ---
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
-engine = create_engine(
-    TEST_DATABASE_URL, connect_args={"check_same_thread": False}
+async_engine = create_async_engine(TEST_DATABASE_URL)
+AsyncTestingSessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=async_engine, class_=AsyncSession
 )
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-
-# --- 2. 创建一个在所有测试运行前后执行一次的 'session' 级 fixture ---
-@pytest.fixture(scope="session", autouse=True)
-def setup_test_environment():
+# --- 2. 创建一个异步的、贯穿所有测试的 setup fixture ---
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def setup_test_db():
     """
-    这个 fixture 会在整个测试会话开始时运行一次，结束时清理一次。
-    `autouse=True` 意味着所有测试都会自动使用它，无需手动指定。
+    在整个测试会话开始时，以异步方式创建所有表，并在结束后删除。
     """
-    # --- 测试开始前 ---
-    # a. 确保所有模型都已加载
-    assert Base.metadata.tables, "Models not loaded, Base.metadata is empty!"
-    # b. 在测试数据库中创建所有表
-    Base.metadata.create_all(bind=engine)
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     
-    yield  # <-- 所有测试将在这里运行
+    yield
     
-    # --- 测试结束后 ---
-    # a. 删除所有表
-    Base.metadata.drop_all(bind=engine)
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
+# --- 3. 创建一个异步的数据库会话 fixture ---
+@pytest_asyncio.fixture(scope="function")
+async def db_session():
+    """为每个测试函数提供一个独立的异步数据库会话。"""
+    async with AsyncTestingSessionLocal() as session:
+        yield session
 
-# --- 3. 创建一个为每个测试函数服务的 client fixture ---
+# --- 4. 创建最终的 client fixture ---
 @pytest.fixture(scope="function")
-def client():
-    """
-    为每个测试提供一个干净的 TestClient 实例。
-    """
-    def override_get_db():
-        """依赖覆盖函数：从测试引擎创建会话"""
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+def client(db_session: AsyncSession): # 它依赖于异步的 db_session
+    """创建一个配置好的、使用异步测试数据库的API客户端。"""
 
-    # 应用依赖覆盖
+    def override_get_db():
+        """依赖覆盖函数"""
+        try:
+            yield db_session
+        finally:
+            pass # 会话由 db_session fixture 管理
+
     app.dependency_overrides[get_db] = override_get_db
     
-    # 临时修改Redis配置
     original_redis_host = settings.REDIS_HOST
     settings.REDIS_HOST = "localhost"
 
-    # 生成并返回客户端
     yield TestClient(app)
 
-    # 清理工作
     settings.REDIS_HOST = original_redis_host
     app.dependency_overrides.clear()
