@@ -38,3 +38,7 @@
     # --- 新增：异步任务队列 ---
     arq 
     requests
+
+    pytest
+    pytest-cov  # 用于计算测试覆盖率
+    httpx       # 用于在测试中异步请求你的API

@@ -21,3 +21,9 @@ uploads/
 # IDE/编辑器生成的其他文件
 .idea/
 *.swp
+
+# Pytest cache
+.pytest_cache/
+
+# Test database file
+test.db

@@ -1,0 +1,10 @@
+# requirements-dev.in
+
+# 1. First, include all production requirements.
+#    This line tells the compiler to use requirements.in as the base.
+-r requirements.in
+
+# 2. Then, add any packages that are ONLY needed for development and testing.
+pytest
+pytest-cov
+httpx
