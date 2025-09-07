@@ -1,4 +1,7 @@
+# pyproject.toml
+
 [tool.pytest.ini_options]
 pythonpath = [
   "."
 ]
+asyncio_mode = "auto" # <-- 新增这一行

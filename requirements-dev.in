@@ -9,3 +9,5 @@ pytest
 pytest-cov
 httpx
 aiosqlite
+greenlet       
+pytest-asyncio

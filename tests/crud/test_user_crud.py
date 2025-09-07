@@ -1,10 +1,11 @@
+# tests/crud/test_user_crud.py (异步版，最佳实践)
+import pytest
 from app.crud import crud_user
 from app.schemas.user import UserCreate
-# 关键：从 conftest 导入测试专用的 Session 工厂
 from tests.conftest import TestingSessionLocal 
 
-def test_create_and_get_user():
-    # 每个CRUD测试都从测试工厂获取一个独立的会话
+@pytest.mark.asyncio
+async def test_create_and_get_user():
     db = TestingSessionLocal()
     try:
         test_openid = "test-openid-123"

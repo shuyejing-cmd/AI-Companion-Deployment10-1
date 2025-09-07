@@ -33,6 +33,8 @@ attrs==25.3.0
     # via aiohttp
 backoff==2.2.1
     # via unstructured
+backports-asyncio-runner==1.2.0
+    # via pytest-asyncio
 bcrypt==4.3.0
     # via passlib
 beautifulsoup4==4.13.5
@@ -102,7 +104,9 @@ fsspec==2025.9.0
     #   huggingface-hub
     #   torch
 greenlet==3.2.4
-    # via sqlalchemy
+    # via
+    #   -r requirements-dev.in
+    #   sqlalchemy
 h11==0.16.0
     # via
     #   httpcore
@@ -329,7 +333,10 @@ pytest==8.4.2
     # via
     #   -r requirements-dev.in
     #   -r requirements.in
+    #   pytest-asyncio
     #   pytest-cov
+pytest-asyncio==1.1.0
+    # via -r requirements-dev.in
 pytest-cov==6.2.1
     # via
     #   -r requirements-dev.in
