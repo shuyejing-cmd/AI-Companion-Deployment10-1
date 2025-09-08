@@ -1,62 +1,63 @@
+# app/crud/crud_companion.py (最终异步版)
+
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from app.models.companion import Companion
 from app.schemas.companion import CompanionCreate, CompanionUpdate
 
-def create_companion(db: Session, companion_in: CompanionCreate, user_id: UUID) -> Companion:
+async def create_companion(db: AsyncSession, companion_in: CompanionCreate, user_id: UUID) -> Companion:
     """
-    为指定用户创建一个新的 AI 伙伴。
+    为指定用户创建一个新的 AI 伙伴 (异步)。
     """
-    # 将 Pydantic 模型转换为字典，并添加 user_id
     companion_data = companion_in.model_dump()
     db_companion = Companion(**companion_data, user_id=user_id)
     db.add(db_companion)
-    db.commit()
-    db.refresh(db_companion)
+    await db.commit()
+    await db.refresh(db_companion)
     return db_companion
 
-def get_companion_by_id(db: Session, companion_id: UUID) -> Optional[Companion]:
+async def get_companion_by_id(db: AsyncSession, companion_id: UUID) -> Optional[Companion]:
     """
-    通过 ID 获取一个 AI 伙伴。
+    通过 ID 获取一个 AI 伙伴 (异步)。
     """
-    return db.query(Companion).filter(Companion.id == companion_id).first()
+    result = await db.execute(select(Companion).filter(Companion.id == companion_id))
+    return result.scalar_one_or_none()
 
-def get_multi_companions_by_owner(db: Session, user_id: UUID, skip: int = 0, limit: int = 100) -> List[Companion]:
+async def get_multi_companions_by_owner(db: AsyncSession, user_id: UUID, skip: int = 0, limit: int = 100) -> List[Companion]:
     """
-    获取一个用户拥有的所有 AI 伙伴列表。
+    获取一个用户拥有的所有 AI 伙伴列表 (异步)。
     """
-    return (
-        db.query(Companion)
+    result = await db.execute(
+        select(Companion)
         .filter(Companion.user_id == user_id)
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    return result.scalars().all()
 
-def update_companion(
-    db: Session, db_companion: Companion, companion_in: CompanionUpdate
+async def update_companion(
+    db: AsyncSession, db_companion: Companion, companion_in: CompanionUpdate
 ) -> Companion:
     """
-    更新一个 AI 伙伴的信息。
+    更新一个 AI 伙伴的信息 (异步)。
     """
-    # 将 Pydantic 模型转换为字典，只保留被设置了值的字段
     update_data = companion_in.model_dump(exclude_unset=True)
     
-    # 遍历字典，更新数据库对象的属性
     for field, value in update_data.items():
         setattr(db_companion, field, value)
         
     db.add(db_companion)
-    db.commit()
-    db.refresh(db_companion)
+    await db.commit()
+    await db.refresh(db_companion)
     return db_companion
 
-def delete_companion(db: Session, db_companion: Companion) -> Companion:
+async def delete_companion(db: AsyncSession, db_companion: Companion) -> Companion:
     """
-    删除一个 AI 伙伴。
+    删除一个 AI 伙伴 (异步)。
     """
-    db.delete(db_companion)
-    db.commit()
+    await db.delete(db_companion)
+    await db.commit()
     return db_companion
