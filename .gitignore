@@ -3,10 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# 虚拟环境
+# Python 虚拟环境
 .venv/
 
-# 语言模型缓存
+# AI 模型缓存
 models_cache/
 
 # 用户上传的文件
@@ -15,15 +15,14 @@ uploads/
 # 包含密钥和密码的环境变量文件
 .env
 
-# VSCode 编辑器配置
+# IDE/编辑器生成的配置文件
 .vscode/
-
-# IDE/编辑器生成的其他文件
 .idea/
 *.swp
 
-# Pytest cache
+# --- 我们在测试过程中新增的忽略项 ---
+# Pytest 缓存
 .pytest_cache/
 
-# Test database file
+# 测试数据库文件
 test.db
