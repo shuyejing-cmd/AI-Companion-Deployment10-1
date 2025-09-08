@@ -1,27 +1,35 @@
+# app/crud/crud_user.py (最终异步版)
+
 from uuid import UUID
 from sqlalchemy.orm import Session
+from sqlalchemy.future import select # 导入 select
+
 from app.models.user import User
 from app.schemas.user import UserCreate
 
-def get_user_by_openid(db: Session, openid: str) -> User | None:
+# 关键改动 1：函数改为 async def，并适配新的查询语法
+async def get_user_by_openid(db: Session, openid: str) -> User | None:
     """
-    通过 openid 查询用户
+    通过 openid 查询用户 (异步)
     """
-    return db.query(User).filter(User.openid == openid).first()
+    result = await db.execute(select(User).filter(User.openid == openid))
+    return result.scalar_one_or_none()
 
-def create_user(db: Session, user_in: UserCreate) -> User:
+# 关键改动 2：函数改为 async def，并 await IO操作
+async def create_user(db: Session, user_in: UserCreate) -> User:
     """
-    创建一个新用户
+    创建一个新用户 (异步)
     """
-    # 将 Pydantic 模型转换为 SQLAlchemy 模型可以理解的字典
     db_user = User(**user_in.model_dump())
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user) # 刷新实例，以获取数据库自动生成的值 (如 id, created_at)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user
 
-def get_user(db: Session, user_id: UUID) -> User | None:
+# 关键改动 3：函数改为 async def，并适配新的查询语法
+async def get_user(db: Session, user_id: UUID) -> User | None:
     """
-    通过 user_id 查询用户
+    通过 user_id 查询用户 (异步)
     """
-    return db.query(User).filter(User.id == user_id).first()
+    result = await db.execute(select(User).filter(User.id == user_id))
+    return result.scalar_one_or_none()
