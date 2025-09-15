@@ -47,20 +47,33 @@ async def process_file_task(ctx, file_id: UUID):
         logging.error(f"执行任务 process_file_task (file_id: {file_id}) 时发生致命错误: {e}", exc_info=True)
         # 具体的错误处理和数据库状态更新，已经在 KnowledgeService 内部完成
 
+
+async def cleanup_pinecone_task(ctx, file_id: str):
+    """
+    ARQ 任务：后台清理指定 file_id 在 Pinecone 中的所有向量。
+    """
+    logging.info(f"Worker 接到任务: cleanup_pinecone_task, file_id: {file_id}")
+    try:
+        # 复用 KnowledgeService 实例来执行删除操作
+        knowledge_service = KnowledgeService()
+        await knowledge_service.delete_vectors_by_file_id(file_id)
+        logging.info(f"成功完成 Pinecone 清理任务, file_id: {file_id}")
+    except Exception as e:
+        logging.error(f"执行任务 cleanup_pinecone_task (file_id: {file_id}) 时发生致命错误: {e}", exc_info=True)
+
 # --- Worker 配置 ---
 
 class WorkerSettings:
     """
     ARQ Worker 的配置类。
     """
-    # --- ↓↓↓ 关键改动：注册我们的任务函数 ↓↓↓ ---
-    functions = [process_file_task]
+    # --- ↓↓↓ 将新任务注册到函数列表中 ↓↓↓ ---
+    functions = [process_file_task, cleanup_pinecone_task]
     
     redis_settings = RedisSettings(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    database=settings.REDIS_DB
-)
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        database=settings.REDIS_DB
+    )
     
-    # 任务执行的超时时间，例如 10 分钟
     job_timeout = 600

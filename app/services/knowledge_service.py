@@ -114,6 +114,29 @@ class KnowledgeService:
                     error_message=f"{type(e).__name__}: {e}",
                 )
 
+    async def delete_vectors_by_file_id(self, file_id: str):
+        """
+        根据 file_id 从 Pinecone 索引中删除所有相关的向量。
+        这是一个后台任务，确保数据一致性。
+        """
+        try:
+            # Pinecone 的 delete API 允许通过元数据过滤器来删除向量
+            # 这是最高效、最精准的方式
+            metadata_filter = {"file_id": {"$eq": file_id}}
+            
+            logging.info(f"开始从 Pinecone 删除 file_id 为 '{file_id}' 的向量...")
+            
+            # 执行删除操作
+            delete_response = self.pinecone_index.delete(filter=metadata_filter)
+            
+            logging.info(f"Pinecone 向量删除任务完成。响应: {delete_response}")
+            
+        except Exception as e:
+            logging.error(
+                f"从 Pinecone 删除 file_id '{file_id}' 的向量时发生严重错误: {e}", 
+                exc_info=True
+            )            
+
     def _load_documents(self, file_path_str: str) -> List[Document]:
         """根据文件扩展名选择合适的加载器来加载文档"""
         file_path = Path(file_path_str)

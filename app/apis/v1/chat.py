@@ -1,3 +1,4 @@
+# app/apis/v1/chat.py
 import traceback
 from typing import List
 from uuid import UUID
@@ -54,26 +55,25 @@ async def websocket_endpoint(
     db: AsyncSession = Depends(get_async_db),
     redis_client: redis.Redis = Depends(get_redis_client_ws)
 ):
+    # 校验：确保伙伴存在且用户有权限连接
     companion = await crud_companion.get_companion_by_id(db=db, companion_id=companion_id)
-    if not companion:
-        await websocket.close(code=status.WS_1007_INVALID_FRAMEWORK_PAYLOAD, reason="Companion not found")
+    if not companion or companion.user_id != current_user.id:
+        await websocket.close(code=status.WS_1007_INVALID_FRAMEWORK_PAYLOAD, reason="Companion not found or access denied")
         return
 
     await websocket.accept()
-    
+
+    # 只传递 companion_id（标量）给 ChatService，避免持有 ORM 实例导致干扰
     chat_service = ChatService(
         db=db,
-        redis_client=redis_client, 
-        companion=companion, 
+        redis_client=redis_client,
+        companion_id=companion_id,
         user_id=current_user.id
     )
 
-    # --- 【【【终极修复：数据预加载】】】 ---
-    # 在进入主循环之前，将所有可能在异常处理中用到的数据从数据库对象中取出，存入普通变量。
-    # 这样可以确保在 WebSocketDisconnect 等不稳定的上下文中，我们不会进行任何数据库IO。
+    # 预存安全的日志变量（避免在断开连接或异常处理时访问 ORM 实例）
     current_user_id_for_log = current_user.id
     companion_name_for_log = companion.name
-    # --- 修复结束 ---
 
     try:
         while True:
@@ -89,11 +89,9 @@ async def websocket_endpoint(
                 await websocket.send_text("[END_OF_STREAM]")
 
     except WebSocketDisconnect:
-        # 【【【终极修复：只使用预加载的、安全的变量来打印日志】】】
         print(f"Client {current_user_id_for_log} disconnected from chat with {companion_name_for_log}")
 
     except Exception as e:
-        # 增加对其他未知异常的日志记录
         print(f"--- An unexpected error occurred in WebSocket for user {current_user_id_for_log} ---")
         traceback.print_exc()
         await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
