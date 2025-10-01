@@ -3,6 +3,7 @@ from typing import List
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.schema.messages import BaseMessage
 import redis.asyncio as redis
+import logging
 
 class MemoryManager:
     def __init__(self, redis_client: redis.Redis, companion_name: str, user_id: str, ai_prefix: str = "AI"):
@@ -25,3 +26,15 @@ class MemoryManager:
     async def save_memory(self, memory: ConversationBufferWindowMemory):
         serialized_history = pickle.dumps(memory.chat_memory.messages)
         await self.redis_client.set(self.memory_key, serialized_history, ex=60 * 60 * 24 * 7)
+
+    async def delete_memory(self):
+        """
+        从 Redis 中删除当前伙伴的对话记忆。
+        """
+        logging.info(f"  -> [MemoryManager] 准备从 Redis 删除 key='{self.memory_key}'...")
+        try:
+            await self.redis_client.delete(self.memory_key)
+            logging.info(f"  -> [MemoryManager] Redis 记忆删除成功。")
+        except Exception as e:
+            logging.error(f"  -> [MemoryManager] ERROR: 从 Redis 删除记忆失败: {e}")
+            raise e    

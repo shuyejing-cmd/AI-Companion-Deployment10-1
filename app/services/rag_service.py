@@ -78,6 +78,21 @@ class RAGService:
         
         return retrieved_texts
 
+    async def delete_vectors_by_companion_id(self, companion_id: str):
+        """
+        根据 companion_id 从 Pinecone 删除所有相关的向量。
+        """
+        logging.info(f"  -> [RAGService] 准备从 Pinecone 删除 companion_id='{companion_id}' 的向量...")
+        try:
+            # Pinecone 的 delete API 支持通过 metadata filter 来批量删除
+            # 注意：Pinecone 的 delete 是同步操作，但我们可以在异步函数中调用它
+            self.pinecone_index.delete(filter={"companion_id": companion_id})
+            logging.info(f"  -> [RAGService] Pinecone 向量删除指令已发送。")
+        except Exception as e:
+            logging.error(f"  -> [RAGService] ERROR: 从 Pinecone 删除向量失败: {e}")
+            # 抛出异常，以便上层可以捕获并回滚事务
+            raise e    
+
 # --- 单例模式 ---
 # 创建一个 RAGService 的全局单例，方便在应用的其他地方复用。
 # 这样可以确保昂贵的模型和客户端连接只在应用启动时被初始化一次，

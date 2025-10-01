@@ -3,7 +3,7 @@
 from typing import Generator
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status, Query, WebSocket
+from fastapi import Depends, HTTPException, status, Query, WebSocket,Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from pydantic import ValidationError
@@ -34,11 +34,22 @@ async def get_async_db() -> Generator[AsyncSession, None, None]:
     async with AsyncSessionLocal() as session:
         yield session
 
+async def get_redis_client(request: Request) -> redis.Redis:
+    """
+    依赖项，从 app.state 中获取 Redis 客户端实例。
+    """
+    if not hasattr(request.app.state, 'redis_client'):
+        raise RuntimeError("Redis client is not available in app.state. Check startup event.")
+    return request.app.state.redis_client        
+
 async def get_redis_client_ws(websocket: WebSocket) -> redis.Redis:
-    pool = websocket.app.state.redis_pool
-    if pool is None:
-        raise RuntimeError("Redis connection pool is not available in app.state.")
-    return redis.Redis.from_pool(pool)
+    """
+    依赖项，为 WebSocket 提供在 app.state 中存储的 Redis 客户端实例。
+    """
+    if not hasattr(websocket.app.state, 'redis_client'):
+        raise RuntimeError("Redis client is not available in app.state. Check startup event.")
+    # 直接返回在启动时创建的那个共享的客户端实例
+    return websocket.app.state.redis_client
 
 async def get_current_user(
     db: AsyncSession = Depends(get_async_db), token: str = Depends(reusable_oauth2)

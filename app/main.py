@@ -24,15 +24,11 @@ async def startup_event():
         encoding="utf-8"
     )
     
-    # --- 【【【关键修复：存储正确的东西，并使用正确的标签】】】 ---
-    # 我们将 redis_client 的 connection_pool 属性
-    # 存储到 app.state.redis_pool 中
-    app.state.redis_pool = redis_client.connection_pool
-    # --- 修复结束 ---
-    
-    # 我们仍然需要客户端本身，以便在关闭时调用 .close()
-    app.state.redis_client = redis_client 
-    print("General Redis connection pool created.")
+    # --- ↓↓↓ 核心修改: 将 redis_client 实例直接存入 app.state ↓↓↓ ---
+    # 这样，任何依赖项都可以通过 app.state.redis_client 来获取它
+    app.state.redis_client = redis_client
+    print("General Redis client stored in app.state.")
+    # --- 修改结束 ---
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -40,12 +36,14 @@ async def shutdown_event():
     if hasattr(app.state, 'arq_pool'):
         await app.state.arq_pool.close()
         print("ARQ Redis pool closed.")
+    
+    # 直接从 app.state 获取并关闭，逻辑更清晰
     if hasattr(app.state, 'redis_client'):
-        if hasattr(app.state.redis_client, 'close'):
-             await app.state.redis_client.close()
+        await app.state.redis_client.close()
         print("General Redis client closed.")
 
-# 路由挂载
+
+# 路由挂载 (保持不变)
 app.include_router(auth_router.router, prefix=settings.API_V1_STR, tags=["Authentication"])
 app.include_router(companions_router.router, prefix=f"{settings.API_V1_STR}/companions", tags=["Companions"])
 app.include_router(chat_router.router, prefix=f"{settings.API_V1_STR}/chat", tags=["Chat"])
