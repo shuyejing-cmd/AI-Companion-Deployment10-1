@@ -26,3 +26,5 @@ uploads/
 
 # 测试数据库文件
 test.db
+
+.env
