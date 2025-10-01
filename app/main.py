@@ -1,6 +1,9 @@
 import redis.asyncio as redis
 from fastapi import FastAPI
 from arq.connections import create_pool, RedisSettings
+import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 
 from app.core.config import settings
 from app.apis.v1 import auth as auth_router
