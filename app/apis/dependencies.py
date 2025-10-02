@@ -17,7 +17,7 @@ from app.models.user import User
 from app.crud import crud_user
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/auth/wechat"
+    tokenUrl=f"{settings.API_V1_STR}/auth/login" # 将 'wechat' 修改为 'login'
 )
 
 # 这个 get_db 依赖现在主要给 Alembic 或其他同步脚本使用
