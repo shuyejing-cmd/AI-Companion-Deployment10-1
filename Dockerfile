@@ -4,6 +4,7 @@
 # 使用官方的 Python 3.10 slim 镜像作为基础
 FROM python:3.10-slim
 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
 # --- 1. 设置关键环境变量 ---
 #    确保 Python 的输出日志不会被缓冲，可以实时看到
