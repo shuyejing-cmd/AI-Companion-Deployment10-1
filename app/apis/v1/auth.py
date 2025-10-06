@@ -28,7 +28,7 @@ class TokenResponse(BaseModel):
 #     ...
 
 # --- 新增：用户注册接口 ---
-@router.post("/auth/register", response_model=user_schema.UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/auth/register", response_model=user_schema.User, status_code=status.HTTP_201_CREATED)
 async def register_new_user(
     *,
     user_in: user_schema.UserCreate,

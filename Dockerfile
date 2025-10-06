@@ -27,8 +27,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./download_model.py /app/download_model.py
-RUN python /app/download_model.py
+
 
 # --- 5. 复制所有项目代码 ---
 COPY . .

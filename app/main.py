@@ -10,6 +10,9 @@ from app.apis.v1 import auth as auth_router
 from app.apis.v1 import companions as companions_router
 from app.apis.v1 import chat as chat_router
 from app.apis.v1 import knowledge as knowledge_router
+from app.apis.v1 import uploads as uploads_router
+from app.apis.v1 import users as users_router
+
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -51,6 +54,8 @@ app.include_router(auth_router.router, prefix=settings.API_V1_STR, tags=["Authen
 app.include_router(companions_router.router, prefix=f"{settings.API_V1_STR}/companions", tags=["Companions"])
 app.include_router(chat_router.router, prefix=f"{settings.API_V1_STR}/chat", tags=["Chat"])
 app.include_router(knowledge_router.router, prefix=settings.API_V1_STR, tags=["Knowledge"])
+app.include_router(uploads_router.router, prefix=f"{settings.API_V1_STR}/uploads", tags=["Uploads"])
+app.include_router(users_router.router, prefix=f"{settings.API_V1_STR}/users", tags=["Users"])
 
 @app.get("/")
 def read_root():

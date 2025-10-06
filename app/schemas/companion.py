@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
+# app/schemas/companion.py
+
+import uuid
 from typing import Optional
-from uuid import UUID
+from pydantic import BaseModel, Field, HttpUrl # 确保导入 HttpUrl
 
 # 共有的基础字段
 class CompanionBase(BaseModel):
@@ -8,7 +10,7 @@ class CompanionBase(BaseModel):
     description: str = Field(..., max_length=500)
     instructions: str
     seed: str
-    src: Optional[str] = None
+    avatar_url: Optional[HttpUrl] = None # <-- 核心修正：替换 src 并使用 HttpUrl
     category_id: Optional[str] = None
 
 # 创建时需要接收的字段
@@ -21,13 +23,13 @@ class CompanionUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=500)
     instructions: Optional[str] = None
     seed: Optional[str] = None
-    src: Optional[str] = None
+    avatar_url: Optional[HttpUrl] = None # <-- 核心修正：替换 src 并使用 HttpUrl
     category_id: Optional[str] = None
 
 # 从 API 读取/返回时的字段
-class CompanionRead(CompanionBase):
-    id: UUID
-    user_id: UUID
+class Companion(CompanionBase): # <-- 统一命名为 Companion
+    id: uuid.UUID
+    owner_id: uuid.UUID # <-- 修正：根据您的 model，外键应为 owner_id
 
     class Config:
         from_attributes = True

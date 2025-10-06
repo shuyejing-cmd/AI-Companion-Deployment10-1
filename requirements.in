@@ -1,44 +1,48 @@
-    # Backend Framework
-    fastapi
-    hypercorn
+# Backend Framework
+fastapi
+hypercorn
 
-    # Database
-    sqlalchemy
-    alembic>=1.15.1
-    psycopg2-binary # For PostgreSQL connection
-    asyncpg 
+# Database
+sqlalchemy
+alembic>=1.15.1
+psycopg2-binary
+asyncpg 
 
-    # Data Validation & Settings
-    pydantic[email]
-    pydantic-settings
+# Data Validation & Settings
+pydantic[email]
+pydantic-settings
 
-    # Security & Auth
-    python-jose[cryptography]
-    passlib[bcrypt]
+# Security & Auth
+python-jose[cryptography]
+argon2-cffi
+passlib
 
-    # AI & LangChain
-    langchain
-    langchain-openai
-    langchain-community
-    openai
-    sentence-transformers; extra == 'dev' # <--- 新增：用于加载 bge-reranker 重排模型
-    cohere
-    pypdf # 用于加载 PDF 文件
-    unstructured # 用于加载 Markdown 等文件
-    sentence-transformers # 核心的 embedding 模型
+# AI & LangChain
+langchain
+langchain-openai
+langchain-community
+openai
+sentence-transformers  # embedding 模型
+cohere
+pypdf
+unstructured
 
-    # Vector DB & Cache
-    pinecone
-    redis
+# Vector DB & Cache
+pinecone
+redis
 
-    # Utilities
-    python-dotenv
-    python-multipart
+# Utilities
+python-dotenv
+python-multipart
 
-    # --- 新增：异步任务队列 ---
-    arq 
-    requests
+# Async Task Queue
+arq
+requests
 
-    pytest
-    pytest-cov  # 用于计算测试覆盖率
-    httpx       # 用于在测试中异步请求你的API
+# Testing
+pytest
+pytest-cov
+httpx
+
+# COS SDK
+cos-python-sdk-v5

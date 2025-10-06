@@ -39,3 +39,14 @@ async def get_user(db: AsyncSession, user_id: UUID) -> User | None:
     """
     result = await db.execute(select(User).filter(User.id == user_id))
     return result.scalar_one_or_none()
+
+# : 添加一个专门用于更新用户头像的函数
+async def update_user_avatar(db: AsyncSession, *, user: User, avatar_url: str) -> User:
+    """
+    专门更新指定用户的头像URL。
+    """
+    user.avatar_url = avatar_url
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user    
